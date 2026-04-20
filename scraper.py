@@ -28,7 +28,6 @@ try:
 
         posts = user["edge_owner_to_timeline_media"]["edges"]
 
-        # 👉 Listas para estadísticas (ANTES del loop)
         likes_list = []
         comentarios_list = []
 
@@ -50,11 +49,9 @@ try:
 
                 writer.writerow([url_post, likes, comentarios])
 
-                # 👉 Guardar datos para estadísticas
                 likes_list.append(likes)
                 comentarios_list.append(comentarios)
 
-        # 👉 Estadísticas (DESPUÉS del loop)
         if likes_list and comentarios_list:
             prom_likes = sum(likes_list) / len(likes_list)
             prom_comentarios = sum(comentarios_list) / len(comentarios_list)
