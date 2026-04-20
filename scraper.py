@@ -1,81 +1,81 @@
-import instaloader
-import json
-import os
-from datetime import datetime
+import requests
+import csv
 
-USERNAME = "nayeli.nxx"   
-MAX_POSTS = 5               
+usuario = "nayeli.nxx"
 
-L = instaloader.Instaloader()
+url = f"https://i.instagram.com/api/v1/users/web_profile_info/?username={usuario}"
 
-# ─────────────────────────────────────────
-# OBTENER DATOS DEL PERFIL
-# ─────────────────────────────────────────
-print(f"\n🔍 Scrapeando perfil: @{USERNAME}\n")
-
-perfil = instaloader.Profile.from_username(L.context, USERNAME)
-
-datos_perfil = {
-    "usuario":      perfil.username,
-    "nombre":       perfil.full_name,
-    "biografia":    perfil.biography,
-    "seguidores":   perfil.followers,
-    "siguiendo":    perfil.followees,
-    "total_posts":  perfil.mediacount,
-    "es_privado":   perfil.is_private,
-    "es_verificado":perfil.is_verified,
-    "url_externo":  perfil.external_url,
-    "fecha_scraping": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+headers = {
+    "User-Agent": "Mozilla/5.0",
+    "x-ig-app-id": "936619743392459"
 }
 
-print("📋 INFORMACIÓN DEL PERFIL")
-print("─" * 40)
-for clave, valor in datos_perfil.items():
-    print(f"  {clave:<20}: {valor}")
+try:
+    response = requests.get(url, headers=headers, timeout=10)
 
-# ─────────────────────────────────────────
-# OBTENER POSTS RECIENTES
-# ─────────────────────────────────────────
-print(f"\n📸 ÚLTIMOS {MAX_POSTS} POSTS")
-print("─" * 40)
+    if response.status_code == 200:
+        data = response.json()
+        user = data["data"]["user"]
 
-lista_posts = []
+        print("===== PERFIL =====")
+        print("Usuario:", user["username"])
+        print("Biografía:", user["biography"])
+        print("Seguidores:", user["edge_followed_by"]["count"])
+        print("Seguidos:", user["edge_follow"]["count"])
+        print("Total posts:", user["edge_owner_to_timeline_media"]["count"])
 
-for i, post in enumerate(perfil.get_posts()):
-    if i >= MAX_POSTS:
-        break
+        print("\n===== POSTS =====\n")
 
-    datos_post = {
-        "numero":       i + 1,
-        "fecha":        str(post.date),
-        "likes":        post.likes,
-        "comentarios":  post.comments,
-        "tipo":         post.typename,
-        "url":          f"https://www.instagram.com/p/{post.shortcode}/",
-        "caption":      post.caption[:100] if post.caption else "Sin texto"
-    }
+        posts = user["edge_owner_to_timeline_media"]["edges"]
 
-    lista_posts.append(datos_post)
+        # 👉 Listas para estadísticas (ANTES del loop)
+        likes_list = []
+        comentarios_list = []
 
-    print(f"\n  Post #{i+1}")
-    print(f"  📅 Fecha     : {datos_post['fecha']}")
-    print(f"  ❤️ Likes     : {datos_post['likes']}")
-    print(f"  💬 Comentarios: {datos_post['comentarios']}")
-    print(f"  🔗 URL       : {datos_post['url']}")
-    print(f"  📝 Caption   : {datos_post['caption']}")
+        with open("posts_instagram.csv", mode="w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["URL", "Likes", "Comentarios"])
 
-# ─────────────────────────────────────────
-# GUARDAR RESULTADOS EN JSON
-# ─────────────────────────────────────────
-resultado_final = {
-    "perfil": datos_perfil,
-    "posts":  lista_posts
-}
+            for post in posts[:10]:
+                node = post["node"]
 
-os.makedirs("resultados", exist_ok=True)
-scrapeo = f"resultados/{USERNAME}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                url_post = "https://www.instagram.com/p/" + node["shortcode"]
+                likes = node["edge_liked_by"]["count"]
+                comentarios = node["edge_media_to_comment"]["count"]
 
-with open(scrapeo, "w", encoding="utf-8") as f:
-    json.dump(resultado_final, f, ensure_ascii=False, indent=4)
+                print("URL:", url_post)
+                print("Likes:", likes)
+                print("Comentarios:", comentarios)
+                print("-----")
 
-print(f"\n✅ Resultados guardados en: {scrapeo}\n")
+                writer.writerow([url_post, likes, comentarios])
+
+                # 👉 Guardar datos para estadísticas
+                likes_list.append(likes)
+                comentarios_list.append(comentarios)
+
+        # 👉 Estadísticas (DESPUÉS del loop)
+        if likes_list and comentarios_list:
+            prom_likes = sum(likes_list) / len(likes_list)
+            prom_comentarios = sum(comentarios_list) / len(comentarios_list)
+
+            max_likes = max(likes_list)
+            min_likes = min(likes_list)
+
+            seguidores = user["edge_followed_by"]["count"]
+            engagement = ((prom_likes + prom_comentarios) / seguidores) * 100 if seguidores > 0 else 0
+
+            print("\n===== ESTADÍSTICAS =====")
+            print("Promedio likes:", round(prom_likes, 2))
+            print("Promedio comentarios:", round(prom_comentarios, 2))
+            print("Max likes:", max_likes)
+            print("Min likes:", min_likes)
+            print("Engagement rate (%):", round(engagement, 4))
+
+        print("\n✅ Datos guardados en posts_instagram.csv")
+
+    else:
+        print("❌ Error HTTP:", response.status_code)
+
+except requests.exceptions.RequestException as e:
+    print("❌ Error de conexión:", e)
