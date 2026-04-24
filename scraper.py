@@ -287,7 +287,7 @@ def extraer_limpio(page):
 
         comentarios.append({"usuario": autor, "texto": texto})
         print(f"      ✅ @{autor}: {texto[:60]}")
-        if len(comentarios) >= 3:
+        if len(comentarios) >= 10:
             break
 
     return comentarios
@@ -364,7 +364,7 @@ with sync_playwright() as p:
         posts_display.append({**post, "stat": s, "etiqueta": etiqueta, "eng_str": eng_str})
         
     # ── Guardar TXT ──
-    with open("ENTREGA_FINAL_UCE_PERFECTA.txt", "w", encoding="utf-8") as f:
+    with open("ANALISIS_PERFIL.txt", "w", encoding="utf-8") as f:
         f.write("=" * 60 + "\n")
         f.write(f"  PERFIL: @{perfil['usuario']}\n")
         f.write("=" * 60 + "\n")
@@ -404,7 +404,7 @@ with sync_playwright() as p:
         f.write(analisis_ia + "\n")
 
     # ── Guardar CSV ──
-    with open("ENTREGA_FINAL_UCE_PERFECTA.csv", "w", encoding="utf-8-sig", newline="") as f:
+    with open("ANALISIS_PERFIL.csv", "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f)
 
         writer.writerow(["=== DATOS DEL PERFIL ==="])
@@ -440,5 +440,5 @@ with sync_playwright() as p:
         writer.writerow([analisis_ia])
 
     print("\n🎉 ¡Listo!")
-    print("   📄 ENTREGA_FINAL_UCE_PERFECTA.txt")
-    print("   📊 ENTREGA_FINAL_UCE_PERFECTA.csv")
+    print("   📄 ANALISIS_PERFIL.txt")
+    print("   📊 ANALISIS_PERFIL.csv")
